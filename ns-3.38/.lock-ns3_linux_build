@@ -1,0 +1,32 @@
+#! /usr/bin/env python3
+
+launch_dir = '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38'
+run_dir = '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38'
+top_dir = '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38'
+out_dir = '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build'
+
+
+NS3_ENABLED_MODULES = ['ns3-wimax', 'ns3-wifi', 'ns3-wave', 'ns3-virtual-net-device', 'ns3-uan', 'ns3-traffic-control', 'ns3-topology-read', 'ns3-tap-bridge', 'ns3-stats', 'ns3-spectrum', 'ns3-sixlowpan', 'ns3-propagation', 'ns3-point-to-point-layout', 'ns3-point-to-point', 'ns3-olsr', 'ns3-nix-vector-routing', 'ns3-network', 'ns3-netanim', 'ns3-mobility', 'ns3-mesh', 'ns3-lte', 'ns3-lr-wpan', 'ns3-internet-apps', 'ns3-internet', 'ns3-flow-monitor', 'ns3-fd-net-device', 'ns3-energy', 'ns3-dsr', 'ns3-dsdv', 'ns3-csma-layout', 'ns3-csma', 'ns3-core', 'ns3-config-store', 'ns3-buildings', 'ns3-bridge', 'ns3-applications', 'ns3-aodv', 'ns3-antenna', ]
+NS3_ENABLED_CONTRIBUTED_MODULES = ['ns3-nr', ]
+NS3_MODULE_PATH = ['/home/joerke/.vscode-server/cli/servers/Stable-7c6fdfb0b8f2f675eb0b47f3d95eeca78962565b/server/bin/remote-cli', '/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/usr/games', '/usr/local/games', '/snap/bin', '/usr/local/MATLAB/R2021b/bin', '/home/joerke/.vscode-server/extensions/ms-python.debugpy-2025.6.0-linux-x64/bundled/scripts/noConfigScripts', '/home/joerke/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand', '/usr/local/MATLAB/R2021b/bin', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/lib']
+ENABLE_REAL_TIME = False
+ENABLE_EXAMPLES = False
+ENABLE_TESTS = False
+ENABLE_OPENFLOW = False
+NSCLICK = False
+ENABLE_BRITE = False
+ENABLE_SUDO = False
+ENABLE_PYTHON_BINDINGS = False
+EXAMPLE_DIRECTORIES = []
+APPNAME = 'ns'
+BUILD_PROFILE = 'optimized'
+VERSION = '3.38' 
+BUILD_VERSION_STRING = '' 
+PYTHON = ['/usr/bin/python3']
+VALGRIND_FOUND = True 
+
+
+ns3_runnable_programs = ['/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/utils/perf/ns3.38-perf-io-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/utils/ns3.38-print-introspected-doxygen-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/utils/ns3.38-bench-packets-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/utils/ns3.38-bench-scheduler-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/scratch/subdir/ns3.38-scratch-subdir-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/scratch/nested-subdir/ns3.38-scratch-nested-subdir-executable-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/scratch/ns3.38-scratch-simulator-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/scratch/ns3.38-cni-playground-base-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/scratch/ns3.38-cni-nr-5hine-playground-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/src/tap-bridge/ns3.38-tap-creator-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/src/fd-net-device/ns3.38-tap-device-creator-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/build/src/fd-net-device/ns3.38-raw-sock-creator-optimized', '/home/joerke/ns3-5g/Cni-Szenario/ns-3-5g-redcap-lena/ns-3.38/cmake-cache/ns3.38-stdlib_pch_exec-optimized', ]
+
+ns3_runnable_scripts = []
+
