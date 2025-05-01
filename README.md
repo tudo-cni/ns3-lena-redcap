@@ -1,2 +1,2 @@
 # ns3-lena-redcap
- This repository includes LENA-RedCap, an 5G RedCap and eRedCap extension to ns-3. 
+ This repository includes LENA-RedCap, an 5G RedCap and eRedCap extension to ns-3. It extends the 5G LENA framwork from: N. Patriciello, S. Lagen, B. Bojovic, L. Giupponi, An E2E Simulator for 5G NR Networks, Elsevier Simulation Modelling Practice and Theory (SIMPAT), vol. 96, 101933, Nov. 2019.
