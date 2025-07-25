@@ -59,32 +59,6 @@ void progressPrint()
     Simulator::Schedule(Seconds(0.1), &progressPrint);
 }
 
-double getFieldSize(uint16_t numSimHeliostats,double heliostatoffset, double distanceHeliostat)
-{   
-    uint8_t ringNo = 1; 
-    double circumference = 0;
-    uint32_t j = 0;
-    if(numSimHeliostats == 0)
-    {
-        return heliostatoffset ;
-    }
-    while(j< numSimHeliostats)
-    {
-        circumference = 2 * M_PI*(heliostatoffset+distanceHeliostat * ringNo);
-        double anglePerHeliostat = 2*M_PI*(distanceHeliostat/circumference);
-        double angle =  0; 
-        while( angle +anglePerHeliostat < 2*M_PI)
-        {
-            angle=angle +anglePerHeliostat;
-
-            ++j;
-
-        }   
-        ++ringNo;
-    }
-    return heliostatoffset+distanceHeliostat * ringNo;
-}
-
 int
 main(int argc, char* argv[])
 {
@@ -97,12 +71,7 @@ main(int argc, char* argv[])
     uint8_t numBands = 1;
     double centralFrequencyBand = 3750e6;
 
-
-    //positioning
-    static int16_t heliostatOffsetY = 25;
-    //double gNbHeight = 10;
-    double heliostatHeight = 2.5;
-    double distanceHeliostatsY = 11; //4.6 //9 vorher
+    double enddeviceHeight = 2.5;
 
 
     //data traffic
@@ -116,19 +85,16 @@ main(int argc, char* argv[])
     //-------------------------------------------------------------------------------------------------------------------------------------------------
     //simulation parameters 
     uint32_t seed = 1;
-    bool heliostatWithEmbb = false; //TODO DL-Stream funktioniert nicht mit eMBB
     
-    bool heliostatDownlinkstream = true;
+    bool enddeviceDownlinkstream = true;
     uint32_t packetSize = 5000;
     double transmissionIntervall =5 ; // in seconds
 
-    uint16_t heliostatsNumPergNb = 1000;
-    uint16_t heliostatScalingFactor = 1; 
+    uint16_t enddevicesNumPergNb = 1;
     double bandwidthBand = 20e6;
     uint16_t m_dataInactivityTimer = 60000;
+    uint8_t redCapConfig = 1; // 1: minimal config; 2: maximum config; 3: eRedCap
  
-    Config::SetDefault("ns3::NrGnbRrc::UsingDroneApplication", BooleanValue(false));
-
 
     // non-contiguous case
     double centralFrequencyCc0 = 3750e6;
@@ -144,8 +110,6 @@ main(int argc, char* argv[])
 
     bool udpFullBuffer = false;
 
-    bool logging = false;
-
     bool m_useSdt = false;
 
     bool m_useErrorModel = false;
@@ -154,13 +118,12 @@ main(int argc, char* argv[])
     std::string simTag = "default";
     std::string outputDir = "./";
 
-    double simTime = 10;  // seconds 
+    double simTime = 36;  // seconds 
     
     CommandLine cmd(__FILE__);
 
     cmd.AddValue("simTime", "Simulation time", simTime);
-    cmd.AddValue("heliostatsNumPergNb", "The number of UE per gNb in multiple-ue topology", heliostatsNumPergNb);
-    cmd.AddValue("heliostatScalingFactor", "Scaling factor for the number of UEs", heliostatScalingFactor);
+    cmd.AddValue("enddevicesNumPergNb", "The number of UE per gNb in multiple-ue topology", enddevicesNumPergNb);
     cmd.AddValue("numBands",
                  "Number of operation bands. More than one implies non-contiguous CC",
                  numBands);
@@ -194,7 +157,6 @@ main(int argc, char* argv[])
                  "Whether to set the full buffer traffic; if this parameter is "
                  "set then the udpInterval parameter will be neglected.",
                  udpFullBuffer);
-    cmd.AddValue("logging", "Enable logging", logging);
     cmd.AddValue("sdt", "Whether SDT should be used or not.",m_useSdt);
     cmd.AddValue("seed", "Seed for RNG", seed);
     cmd.AddValue("simTag",
@@ -202,7 +164,6 @@ main(int argc, char* argv[])
                  simTag);
     cmd.AddValue("outputDir", "directory where to store simulation results", outputDir);
     cmd.AddValue("DataErrorModelEnabled","Usage of the Error Model",m_useErrorModel);
-    cmd.AddValue("heliostatWithEmbb","creates heliostat with eMBB devices", heliostatWithEmbb);
     cmd.AddValue("intervall","used intervall for transmitting data", transmissionIntervall);
     cmd.AddValue("packetSize","used packetSize for datastream", packetSize);
     cmd.AddValue("inactivityTimer", "Timer to release the connection after it´s expiration",m_dataInactivityTimer);
@@ -213,11 +174,37 @@ main(int argc, char* argv[])
     uint8_t mimo_layer = 1;
     uint8_t McsToBeUsed =19;
     bool use5MHz = false;
+
+    switch (redCapConfig)
+    {
+    //minimal configuration
+    case 1:
+        mimo_layer=1;
+        McsToBeUsed = 19;
+        use5MHz = false;
+        break;
+    //maximum configuration
+    case 2:
+        mimo_layer=2;
+        McsToBeUsed=27;
+        use5MHz = false;
+        break;
+    //5MHz configuration
+    case 3:
+        mimo_layer=1;
+        McsToBeUsed = 19;
+        use5MHz = true;
+        transmitPower -=6;
+        break;
+    default:
+        NS_ABORT_IF(true);
+        break;
+    }
     
     NrChip chip_RedCap = RG255C(centralFrequencyBand,transmitPower);
     NrChip chip_NR = RM520N(centralFrequencyBand,transmitPower);
 
-    uint initTime = 100 + heliostatsNumPergNb * 10;
+    uint initTime = 100 + enddevicesNumPergNb * 10;
     uint8_t numBwp_nonOverlapping = bandwidthBand/20e6;
     
     uint8_t numBwp_Overlapping = 2;
@@ -242,7 +229,23 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::NrGnbPhy::RbOverhead", DoubleValue(0.08)); //adjusted to 0.08 to align allocated rb with table Table 5.3.2-1 from 3GPP 38.104. Now 51 RB are set for 20MHz BW
  
     std::string ResultDir = "Results/Cni-Szenario/"+simTag+"/";
-    std::string usedRedCapConfig = "minimal";
+    std::string usedRedCapConfig;
+
+    switch (redCapConfig)
+    {
+    case 1:
+        usedRedCapConfig = "minimal";
+        break;
+    case 2:
+        usedRedCapConfig = "maximum";
+        break;
+    case 3:
+        usedRedCapConfig = "5MHz_minimum";
+        break;
+    
+    default:
+        break;
+    }
 
        
     Config::SetDefault("ns3::NrNetDevice::outputDir", StringValue(ResultDir+"Ausgaben/"+std::to_string(packetSize)+"/"+usedRedCapConfig+"/"+std::to_string(transmitPower)+"/Seed_"+std::to_string(seed)+"/"));
@@ -287,23 +290,6 @@ main(int argc, char* argv[])
 
     NS_ABORT_IF(numBands < 1);
 
-    // enable logging or not
-    if (logging)
-    {
-        LogComponentEnableAll (LOG_PREFIX_TIME);
-        //LogComponentEnable("Nr3gppPropagationLossModel", LOG_LEVEL_ALL);
-        //LogComponentEnable("Nr3gppBuildingsPropagationLossModel", LOG_LEVEL_ALL);
-        //LogComponentEnable("Nr3gppChannel", LOG_LEVEL_ALL);
-        // LogComponentEnable("UdpClient", LOG_LEVEL_ALL);
-        // LogComponentEnable("UdpServer", LOG_LEVEL_INFO);
-        // LogComponentEnable("UdpClient5hine", LOG_LEVEL_INFO);
-        // LogComponentEnable("UdpServer5hine", LOG_LEVEL_INFO);
-        // LogComponentEnable("LtePdcp", LOG_LEVEL_INFO);
-        LogComponentEnable("EpcPgwApplication", LOG_LEVEL_ALL);
-        LogComponentEnable("EpcSgwApplication", LOG_LEVEL_ALL);
-
-    }
-
     Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize", UintegerValue(999999999));
     Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(999999999));
     Config::SetDefault ("ns3::NrGnbRrc::EpsBearerToRlcMapping", EnumValue(NrGnbRrc::RLC_AM_ALWAYS));
@@ -330,11 +316,11 @@ main(int argc, char* argv[])
 
     gNbNodes.Create(1); // For now just 1 gNb
 
-    redCapUeNodes.Create( heliostatsNumPergNb ); 
+    redCapUeNodes.Create( enddevicesNumPergNb ); 
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //----- Setting positions in heliostat field -----------------------------------------------------------------//
+    //----- Setting positions in enddevice field -----------------------------------------------------------------//
     Ptr<ListPositionAllocator> apPositionAlloc = CreateObject<ListPositionAllocator>();
     Ptr<ListPositionAllocator> staPositionAlloc = CreateObject<ListPositionAllocator>();
     
@@ -351,42 +337,12 @@ main(int argc, char* argv[])
 
     outFile_position.setf(std::ios_base::fixed);
 
-    double xValue = 0.0;
-    double yValue = 0.0;
-    uint8_t ringNo = 1; 
-    double circumference = 0;
     uint32_t j = 0;
-    uint32_t k =0;
-    double fieldSize = getFieldSize(heliostatsNumPergNb*heliostatScalingFactor,heliostatOffsetY,distanceHeliostatsY);
-    std::cout<<"FieldSize: "<< fieldSize<<std::endl;
 
-    //create a rounded field
-    while(j< heliostatsNumPergNb)
+    while(j< enddevicesNumPergNb)
     {
-        circumference = 2 * M_PI*(heliostatOffsetY+distanceHeliostatsY * ringNo);
-        double anglePerHeliostat = 2*M_PI*(distanceHeliostatsY/circumference);
-        double angle = 0; 
-        while( angle +anglePerHeliostat < 2*M_PI)
-        {
-            angle=angle +anglePerHeliostat;
-            if(k%heliostatScalingFactor ==0)
-            {
-                xValue = heliostatOffsetY+distanceHeliostatsY * ringNo * std::cos(angle); //x= r * cos(phi)
-                yValue = heliostatOffsetY+distanceHeliostatsY * ringNo *  std::sin(angle); //y = r * sin(phi)
-                outFile_position<<	"Heliostat No. " << k << ": x=" << xValue << "m | y=" << yValue << "m" << "\n";
-                staPositionAlloc->Add(Vector(xValue, yValue, heliostatHeight));
-                ++j;
-
-            }
-
-            if(j== heliostatsNumPergNb)
-            {
-                break;
-            }
-            ++k;
-
-        }   
-        ++ringNo;
+        staPositionAlloc->Add(Vector(10, 10+j, enddeviceHeight));
+        j++;
     }
                    
     outFile_position.close();
@@ -568,18 +524,6 @@ main(int argc, char* argv[])
     nrHelper->SetGnbAntennaAttribute("AntennaElement",
                                      PointerValue(CreateObject<IsotropicAntennaModel>()));
 
-    // uint32_t bwpIdForLowLat = 0;
-    // uint32_t bwpIdForVoice = 1;
-    // uint32_t bwpIdForVideo = 2;
-    // uint32_t bwpIdForVideoGaming = 3;
-
-    // nrHelper->SetGnbBwpManagerAlgorithmAttribute("NGBR_LOW_LAT_EMBB",
-    //                                              UintegerValue(bwpIdForLowLat));
-    // nrHelper->SetGnbBwpManagerAlgorithmAttribute("GBR_CONV_VOICE", UintegerValue(bwpIdForVoice));
-    // nrHelper->SetGnbBwpManagerAlgorithmAttribute("NGBR_VIDEO_TCP_PREMIUM",
-    //                                              UintegerValue(bwpIdForVideo));
-    // nrHelper->SetGnbBwpManagerAlgorithmAttribute("NGBR_VOICE_VIDEO_GAMING",
-    //                                              UintegerValue(bwpIdForVideoGaming));
     //Initialize Ressource Manager
     std::string logDir = ResultDir+"Ausgaben/"+std::to_string(packetSize)+"/"+usedRedCapConfig+"/"+std::to_string(transmitPower)+"/Seed_"+std::to_string(seed)+"/";
 
@@ -720,7 +664,6 @@ main(int argc, char* argv[])
     uint16_t ulPort = 1;
     ApplicationContainer clientApps;
     ApplicationContainer serverApps;
-    uint32_t currentNumEmbbUes = 0;
 
     uint64_t imsi;
     std::ofstream outFile_ports;
@@ -737,14 +680,14 @@ main(int argc, char* argv[])
 
     uint accessbreak =20;
 
-    // Install UDP applications for the heliostats
-    if(heliostatsNumPergNb > 0){
-        for (uint32_t u = 0; u < heliostatsNumPergNb; ++u)
+    // Install UDP applications for the enddevices
+    if(enddevicesNumPergNb > 0){
+        for (uint32_t u = 0; u < enddevicesNumPergNb; ++u)
         {
             uint16_t port;
             int access = RaUeUniformVariable->GetValue (8000, 12000); // 
             enum EpsBearer::Qci q;
-            if(heliostatDownlinkstream)
+            if(enddeviceDownlinkstream)
             {
                 port = dlPort;
                 UdpClientHelper udpDlClient(ueIpIface.GetAddress(u), dlPort);
@@ -756,13 +699,7 @@ main(int argc, char* argv[])
                 PacketSinkHelper psh(
                     "ns3::UdpSocketFactory",
                     InetSocketAddress(Ipv4Address::GetAny(), port));
-                    if(heliostatWithEmbb)
-                    {
-                        serverApps.Add(psh.Install(embbUeNodes.Get(u+currentNumEmbbUes)));
-                    }
-                    else{
-                        serverApps.Add(psh.Install(redCapUeNodes.Get(u)));
-                    }
+                    serverApps.Add(psh.Install(redCapUeNodes.Get(u)));
             }
             else{
                 port = ulPort;
@@ -771,13 +708,7 @@ main(int argc, char* argv[])
                 udpUlClient.SetAttribute("Interval", TimeValue(Seconds(transmissionIntervall)));
                 udpUlClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
                 udpUlClient.SetAttribute("StopApp", UintegerValue(udpAppStopTime));
-                if(heliostatWithEmbb)
-                {
-                    clientApps.Add(udpUlClient.Install(embbUeNodes.Get(u+currentNumEmbbUes)));
-                }
-                else{
-                    clientApps.Add(udpUlClient.Install(redCapUeNodes.Get(u)));
-                }
+                clientApps.Add(udpUlClient.Install(redCapUeNodes.Get(u)));
                 PacketSinkHelper psh(
                     "ns3::UdpSocketFactory",
                     InetSocketAddress(Ipv4Address::GetAny(), port));
@@ -788,14 +719,14 @@ main(int argc, char* argv[])
             clientApps.Get(serverApps.GetN()-1)->SetStartTime (MilliSeconds (access));
 
             imsi = nrHelper->GetUePhy(ueNetDev.Get(u),0)->GetImsi();
-            outFile_ports << "Heliostat,datastream," << port << "," << access << "," << imsi << "\n";
+            outFile_ports << "enddevice,datastream," << port << "," << access << "," << imsi << "\n";
 
             Ptr<EpcTft> tft = Create<EpcTft>();
             EpcTft::PacketFilter pfD;
             pfD.localPortStart = port;
             pfD.localPortEnd = port;
             ++port;
-            if(heliostatDownlinkstream){
+            if(enddeviceDownlinkstream){
                 ++dlPort;
             }
             else{
@@ -820,13 +751,7 @@ main(int argc, char* argv[])
             ulInitClient.SetAttribute("MaxPackets", UintegerValue(1));
             access = 10+ (u * accessbreak);
             ulInitClient.SetAttribute("StopApp", UintegerValue(access));
-            if(heliostatWithEmbb)
-            {
-                clientApps.Add(ulInitClient.Install(embbUeNodes.Get(u+currentNumEmbbUes)));
-            }
-            else{
-                clientApps.Add(ulInitClient.Install(redCapUeNodes.Get(u)));
-            }
+            clientApps.Add(ulInitClient.Install(redCapUeNodes.Get(u)));
             serverApps.Get(serverApps.GetN()-1)->SetStartTime (MilliSeconds (access));
             clientApps.Get(serverApps.GetN()-1)->SetStartTime (MilliSeconds (access));
             Ptr<EpcTft> tftInit = Create<EpcTft>();
@@ -874,7 +799,7 @@ main(int argc, char* argv[])
 
 
    //log spectral ressources
-    //schedmanager.logRessources(heliostatsNumPergNb,seed);
+    //schedmanager.logRessources(enddevicesNumPergNb,seed);
 
     schedmanager.collectFinalResUsage();
 
@@ -883,7 +808,7 @@ main(int argc, char* argv[])
     resStats = schedmanager.getCapacityUsage(); 
 
     UeRessourceUsage
-    //ueStats = schedmanager.calculateUeSpecificCapacityUsage(initTime,followUpTime,heliostatsNumPergNb+sumOtherDevices+1); 
+    //ueStats = schedmanager.calculateUeSpecificCapacityUsage(initTime,followUpTime,enddevicesNumPergNb+sumOtherDevices+1); 
     ueStats = schedmanager.getUeSpecificCapacityUsage(); 
 
 
@@ -933,9 +858,9 @@ main(int argc, char* argv[])
     outFile<< "Capacity usage UL: " << capacityUsage_UL << "\n";
 
     outFile<< "Device specific ressource usage:"<<"\n";
-    for(uint i=1;i<=heliostatsNumPergNb;++i)
+    for(uint i=1;i<=enddevicesNumPergNb;++i)
     {
-        outFile<<"Ressource usage for device "<<i<<": "<<ueStats.ueResMap[i]<<" ressource blocks (Heliostat)"<<"\n";
+        outFile<<"Ressource usage for device "<<i<<": "<<ueStats.ueResMap[i]<<" ressource blocks (enddevice)"<<"\n";
     }
 
 
